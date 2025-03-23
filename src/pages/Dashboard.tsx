@@ -1,0 +1,150 @@
+
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Search, RefreshCw } from 'lucide-react';
+import { useAuthStore } from '@/utils/auth';
+import { getDataForTeam, DataItem, sampleData } from '@/utils/data';
+import Header from '@/components/Header';
+import DataCard from '@/components/DataCard';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const Dashboard = () => {
+  const { isAuthenticated, currentTeam } = useAuthStore();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [accessibleData, setAccessibleData] = useState<DataItem[]>([]);
+  const [allData, setAllData] = useState<DataItem[]>([]);
+  const [filteredData, setFilteredData] = useState<DataItem[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Set up initial data
+  useEffect(() => {
+    if (currentTeam) {
+      const teamData = getDataForTeam(currentTeam);
+      setAccessibleData(teamData);
+      setAllData(sampleData);
+      setFilteredData(teamData);
+    }
+  }, [currentTeam]);
+
+  // Handle search and filtering
+  useEffect(() => {
+    const query = searchQuery.toLowerCase();
+    let dataToFilter = activeTab === 'all' ? allData : accessibleData;
+    
+    const filtered = dataToFilter.filter(item => 
+      item.title.toLowerCase().includes(query) || 
+      item.content.toLowerCase().includes(query)
+    );
+    
+    setFilteredData(filtered);
+  }, [searchQuery, activeTab, accessibleData, allData]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-accent/30 to-background page-transition">
+      <Header />
+      
+      <main className="pt-24 pb-16 px-4 max-w-7xl mx-auto">
+        <div className="mb-8">
+          <motion.h1 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-bold mb-2"
+          >
+            {currentTeam === 'A' ? 'All Team Data' : `Team ${currentTeam} Dashboard`}
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { delay: 0.1 } }}
+            className="text-muted-foreground"
+          >
+            {currentTeam === 'A' 
+              ? 'As an admin, you have access to view all team data'
+              : `View data accessible to Team ${currentTeam}`}
+          </motion.p>
+        </div>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-col md:flex-row gap-4 mb-8"
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search data..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          {currentTeam === 'A' && (
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full md:w-auto">
+              <TabsList>
+                <TabsTrigger value="all">All Data</TabsTrigger>
+                <TabsTrigger value="accessible">Accessible Only</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          
+          <Button variant="outline" size="icon" className="md:ml-2" onClick={() => setSearchQuery('')}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </motion.div>
+        
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab + searchQuery}
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {filteredData.length > 0 ? (
+              filteredData.map((item, index) => (
+                <DataCard key={item.id} data={item} index={index} />
+              ))
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="col-span-3 py-16 text-center text-muted-foreground"
+              >
+                No data found matching your search criteria
+              </motion.div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+};
+
+export default Dashboard;
