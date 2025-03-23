@@ -108,7 +108,29 @@ export const addNewProject = (title: string, content: string, team: 'X' | 'Y' | 
     createdAt: new Date().toISOString(),
   };
   
-  projectsData = [newProject, ...projectsData];
+  // Group projects by team - find where to insert the new project
+  // First, separate the data by team
+  const teamGroups: Record<string, DataItem[]> = {};
+  projectsData.forEach(item => {
+    if (!teamGroups[item.team]) {
+      teamGroups[item.team] = [];
+    }
+    teamGroups[item.team].push(item);
+  });
+  
+  // Add the new project to its team group
+  if (!teamGroups[team]) {
+    teamGroups[team] = [];
+  }
+  teamGroups[team].unshift(newProject);
+  
+  // Reconstruct the data array with team groups in order
+  const newData: DataItem[] = [];
+  Object.keys(teamGroups).forEach(teamKey => {
+    newData.push(...teamGroups[teamKey]);
+  });
+  
+  projectsData = newData;
   persistData();
   return newProject;
 };
