@@ -28,23 +28,30 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-interface FormData {
-  title: string;
-  content: string;
+interface NewProjectDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onProjectAdded: () => void;
 }
 
-const NewProjectDialog = ({ onProjectAdded }: { onProjectAdded: () => void }) => {
+const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ 
+  isOpen, 
+  onOpenChange, 
+  onProjectAdded 
+}) => {
   const { currentTeam } = useAuthStore();
-  const [open, setOpen] = React.useState(false);
   
-  const form = useForm<FormData>({
+  const form = useForm<{
+    title: string;
+    content: string;
+  }>({
     defaultValues: {
       title: '',
       content: '',
     },
   });
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (data: { title: string; content: string }) => {
     if (!currentTeam) {
       toast({
         title: "Error",
@@ -62,18 +69,12 @@ const NewProjectDialog = ({ onProjectAdded }: { onProjectAdded: () => void }) =>
     });
     
     form.reset();
-    setOpen(false);
+    onOpenChange(false);
     onProjectAdded();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Project
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>

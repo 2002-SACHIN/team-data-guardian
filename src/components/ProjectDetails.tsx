@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { X, Calendar, Users } from 'lucide-react';
+import { Calendar, Users } from 'lucide-react';
 import { DataItem } from '@/utils/data';
 import { 
   Sheet, 
@@ -40,9 +40,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, isOpen, onClos
         <SheetHeader className="mb-6">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-2xl">{project.title}</SheetTitle>
-            <SheetClose className="rounded-full hover:bg-muted p-2">
-              <X className="h-4 w-4" />
-            </SheetClose>
+            {/* Removed the duplicate close button here */}
           </div>
         </SheetHeader>
         
@@ -63,11 +61,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, isOpen, onClos
             </div>
           </div>
           
-          <SheetDescription className="text-base">
+          <div className="text-base text-muted-foreground">
             {project.content.split('\n').map((paragraph, i) => (
               <p key={i} className="mb-4">{paragraph}</p>
             ))}
-          </SheetDescription>
+          </div>
         </motion.div>
       </SheetContent>
     </Sheet>

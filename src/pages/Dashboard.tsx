@@ -12,6 +12,7 @@ import ProjectDetails from '@/components/ProjectDetails';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const Dashboard = () => {
   const { isAuthenticated, currentTeam } = useAuthStore();
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [selectedProject, setSelectedProject] = useState<DataItem | null>(null);
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -43,7 +45,7 @@ const Dashboard = () => {
       const teamData = getDataForTeam(currentTeam);
       setAccessibleData(teamData);
       setAllData(sampleData);
-      setFilteredData(teamData);
+      setFilteredData(activeTab === 'all' ? sampleData : teamData);
     }
   };
 
@@ -62,6 +64,17 @@ const Dashboard = () => {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    
+    // Immediately update filtered data based on the new tab
+    const dataToFilter = value === 'all' ? allData : accessibleData;
+    const query = searchQuery.toLowerCase();
+    
+    const filtered = dataToFilter.filter(item => 
+      item.title.toLowerCase().includes(query) || 
+      item.content.toLowerCase().includes(query)
+    );
+    
+    setFilteredData(filtered);
   };
 
   const handleProjectClick = (project: DataItem) => {
@@ -125,21 +138,23 @@ const Dashboard = () => {
               />
             </div>
             
-            {currentTeam === 'A' && (
-              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full md:w-auto">
-                <TabsList>
-                  <TabsTrigger value="all">All Data</TabsTrigger>
-                  <TabsTrigger value="accessible">Accessible Only</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
+            {/* Updated to use ToggleGroup instead of Tabs for better visibility */}
+            <div className="w-full md:w-auto">
+              <ToggleGroup type="single" value={activeTab} onValueChange={(value) => value && handleTabChange(value)} className="justify-start">
+                <ToggleGroupItem value="all" aria-label="Show all data">All Data</ToggleGroupItem>
+                <ToggleGroupItem value="accessible" aria-label="Show only accessible data">Accessible Only</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             
-            <Button variant="outline" size="icon" className="md:ml-2" onClick={() => setSearchQuery('')}>
+            <Button variant="outline" size="icon" className="md:ml-2" onClick={() => {setSearchQuery(''); loadData();}}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
           
-          <NewProjectDialog onProjectAdded={handleProjectAdded} />
+          <Button className="gap-2" onClick={() => setShowNewProjectDialog(true)}>
+            <Plus className="h-4 w-4" />
+            New Project
+          </Button>
         </motion.div>
         
         <AnimatePresence mode="wait">
@@ -176,6 +191,12 @@ const Dashboard = () => {
         project={selectedProject} 
         isOpen={projectDetailsOpen} 
         onClose={() => setProjectDetailsOpen(false)} 
+      />
+      
+      <NewProjectDialog 
+        isOpen={showNewProjectDialog}
+        onOpenChange={setShowNewProjectDialog}
+        onProjectAdded={handleProjectAdded} 
       />
     </div>
   );
