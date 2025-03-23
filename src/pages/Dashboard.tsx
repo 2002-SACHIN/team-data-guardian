@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { toast } from '@/components/ui/use-toast';
 
 const Dashboard = () => {
   const { isAuthenticated, currentTeam } = useAuthStore();
@@ -26,14 +26,12 @@ const Dashboard = () => {
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
-  // Set up initial data
   useEffect(() => {
     if (currentTeam) {
       loadData();
@@ -43,13 +41,13 @@ const Dashboard = () => {
   const loadData = () => {
     if (currentTeam) {
       const teamData = getDataForTeam(currentTeam);
+      const allProjectsData = getDataForTeam('A');
       setAccessibleData(teamData);
-      setAllData(sampleData);
-      setFilteredData(activeTab === 'all' ? sampleData : teamData);
+      setAllData(allProjectsData);
+      setFilteredData(activeTab === 'all' ? allProjectsData : teamData);
     }
   };
 
-  // Handle search and filtering
   useEffect(() => {
     const query = searchQuery.toLowerCase();
     let dataToFilter = activeTab === 'all' ? allData : accessibleData;
@@ -65,7 +63,6 @@ const Dashboard = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Immediately update filtered data based on the new tab
     const dataToFilter = value === 'all' ? allData : accessibleData;
     const query = searchQuery.toLowerCase();
     
@@ -84,9 +81,29 @@ const Dashboard = () => {
 
   const handleProjectAdded = () => {
     loadData();
+    toast({
+      title: "Project Added",
+      description: "Your new project has been added successfully.",
+    });
   };
 
-  // Animation variants
+  const handleProjectDeleted = () => {
+    loadData();
+    setProjectDetailsOpen(false);
+    toast({
+      title: "Project Deleted",
+      description: "The project has been deleted successfully.",
+    });
+  };
+
+  const handleProjectEdited = () => {
+    loadData();
+    toast({
+      title: "Project Updated",
+      description: "The project has been updated successfully.",
+    });
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -138,7 +155,6 @@ const Dashboard = () => {
               />
             </div>
             
-            {/* Updated to use ToggleGroup instead of Tabs for better visibility */}
             <div className="w-full md:w-auto">
               <ToggleGroup type="single" value={activeTab} onValueChange={(value) => value && handleTabChange(value)} className="justify-start">
                 <ToggleGroupItem value="all" aria-label="Show all data">All Data</ToggleGroupItem>
@@ -191,6 +207,8 @@ const Dashboard = () => {
         project={selectedProject} 
         isOpen={projectDetailsOpen} 
         onClose={() => setProjectDetailsOpen(false)} 
+        onDelete={handleProjectDeleted}
+        onEdit={handleProjectEdited}
       />
       
       <NewProjectDialog 

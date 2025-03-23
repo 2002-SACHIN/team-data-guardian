@@ -112,3 +112,50 @@ export const addNewProject = (title: string, content: string, team: 'X' | 'Y' | 
   persistData();
   return newProject;
 };
+
+export const deleteProject = (id: string, userTeam: 'X' | 'Y' | 'Z' | 'A'): boolean => {
+  const projectToDelete = projectsData.find(item => item.id === id);
+  
+  if (!projectToDelete) {
+    return false; // Project not found
+  }
+  
+  // Only allow deletion if user is admin or from the same team
+  if (userTeam !== 'A' && projectToDelete.team !== userTeam) {
+    return false; // User doesn't have permission
+  }
+  
+  projectsData = projectsData.filter(item => item.id !== id);
+  persistData();
+  return true;
+};
+
+export const editProject = (
+  id: string, 
+  updates: { title?: string; content?: string }, 
+  userTeam: 'X' | 'Y' | 'Z' | 'A'
+): boolean => {
+  const projectIndex = projectsData.findIndex(item => item.id === id);
+  
+  if (projectIndex === -1) {
+    return false; // Project not found
+  }
+  
+  const project = projectsData[projectIndex];
+  
+  // Only allow editing if user is admin or from the same team
+  if (userTeam !== 'A' && project.team !== userTeam) {
+    return false; // User doesn't have permission
+  }
+  
+  // Update project with new details
+  projectsData[projectIndex] = {
+    ...project,
+    title: updates.title !== undefined ? updates.title : project.title,
+    content: updates.content !== undefined ? updates.content : project.content,
+    // Don't change id, team or createdAt
+  };
+  
+  persistData();
+  return true;
+};
