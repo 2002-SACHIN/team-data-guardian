@@ -9,9 +9,10 @@ import { useAuthStore, hasAccessToData } from '@/utils/auth';
 interface DataCardProps {
   data: DataItem;
   index: number;
+  onClick: (data: DataItem) => void;
 }
 
-const DataCard: React.FC<DataCardProps> = ({ data, index }) => {
+const DataCard: React.FC<DataCardProps> = ({ data, index, onClick }) => {
   const { currentTeam } = useAuthStore();
   const hasAccess = hasAccessToData(data.team, currentTeam);
   
@@ -42,13 +43,20 @@ const DataCard: React.FC<DataCardProps> = ({ data, index }) => {
     }
   };
 
+  const handleClick = () => {
+    if (hasAccess) {
+      onClick(data);
+    }
+  };
+
   return (
     <motion.div
       variants={cardVariants}
       initial="hidden"
       animate="visible"
       custom={index}
-      className={`card-glass rounded-xl p-6 transition-all duration-300 ${hasAccess ? 'hover:shadow-md' : 'opacity-80'}`}
+      className={`card-glass rounded-xl p-6 transition-all duration-300 ${hasAccess ? 'hover:shadow-md cursor-pointer' : 'opacity-80'}`}
+      onClick={handleClick}
     >
       <div className="flex justify-between items-start mb-3">
         <div className={`px-2.5 py-1 text-xs font-medium rounded-full ${getTeamBadgeClass()}`}>
@@ -64,7 +72,7 @@ const DataCard: React.FC<DataCardProps> = ({ data, index }) => {
       <h3 className="text-lg font-medium mb-2">{hasAccess ? data.title : "Restricted Content"}</h3>
       
       {hasAccess ? (
-        <p className="text-muted-foreground">{data.content}</p>
+        <p className="text-muted-foreground line-clamp-3">{data.content}</p>
       ) : (
         <div className="flex flex-col items-center py-8 text-muted-foreground">
           <Lock className="w-8 h-8 mb-3 opacity-40" />

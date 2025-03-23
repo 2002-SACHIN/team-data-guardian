@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useAuthStore } from '@/utils/auth';
 import { getDataForTeam, DataItem, sampleData } from '@/utils/data';
 import Header from '@/components/Header';
 import DataCard from '@/components/DataCard';
+import NewProjectDialog from '@/components/NewProjectDialog';
+import ProjectDetails from '@/components/ProjectDetails';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +21,8 @@ const Dashboard = () => {
   const [allData, setAllData] = useState<DataItem[]>([]);
   const [filteredData, setFilteredData] = useState<DataItem[]>([]);
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedProject, setSelectedProject] = useState<DataItem | null>(null);
+  const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -30,12 +34,18 @@ const Dashboard = () => {
   // Set up initial data
   useEffect(() => {
     if (currentTeam) {
+      loadData();
+    }
+  }, [currentTeam]);
+
+  const loadData = () => {
+    if (currentTeam) {
       const teamData = getDataForTeam(currentTeam);
       setAccessibleData(teamData);
       setAllData(sampleData);
       setFilteredData(teamData);
     }
-  }, [currentTeam]);
+  };
 
   // Handle search and filtering
   useEffect(() => {
@@ -52,6 +62,15 @@ const Dashboard = () => {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+  };
+
+  const handleProjectClick = (project: DataItem) => {
+    setSelectedProject(project);
+    setProjectDetailsOpen(true);
+  };
+
+  const handleProjectAdded = () => {
+    loadData();
   };
 
   // Animation variants
@@ -93,30 +112,34 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex flex-col md:flex-row gap-4 mb-8"
+          className="flex flex-col md:flex-row justify-between gap-4 mb-8"
         >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search data..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-4 flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search data..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            {currentTeam === 'A' && (
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full md:w-auto">
+                <TabsList>
+                  <TabsTrigger value="all">All Data</TabsTrigger>
+                  <TabsTrigger value="accessible">Accessible Only</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+            
+            <Button variant="outline" size="icon" className="md:ml-2" onClick={() => setSearchQuery('')}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
           
-          {currentTeam === 'A' && (
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full md:w-auto">
-              <TabsList>
-                <TabsTrigger value="all">All Data</TabsTrigger>
-                <TabsTrigger value="accessible">Accessible Only</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-          
-          <Button variant="outline" size="icon" className="md:ml-2" onClick={() => setSearchQuery('')}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <NewProjectDialog onProjectAdded={handleProjectAdded} />
         </motion.div>
         
         <AnimatePresence mode="wait">
@@ -129,7 +152,12 @@ const Dashboard = () => {
           >
             {filteredData.length > 0 ? (
               filteredData.map((item, index) => (
-                <DataCard key={item.id} data={item} index={index} />
+                <DataCard 
+                  key={item.id} 
+                  data={item} 
+                  index={index} 
+                  onClick={handleProjectClick}
+                />
               ))
             ) : (
               <motion.div 
@@ -143,6 +171,12 @@ const Dashboard = () => {
           </motion.div>
         </AnimatePresence>
       </main>
+      
+      <ProjectDetails 
+        project={selectedProject} 
+        isOpen={projectDetailsOpen} 
+        onClose={() => setProjectDetailsOpen(false)} 
+      />
     </div>
   );
 };

@@ -67,12 +67,48 @@ export const sampleData: DataItem[] = [
   },
 ];
 
+// Use localStorage to persist data across sessions
+const loadPersistedData = (): DataItem[] => {
+  const savedData = localStorage.getItem('teamProjectsData');
+  if (savedData) {
+    try {
+      return JSON.parse(savedData);
+    } catch (e) {
+      console.error('Failed to parse saved data', e);
+      return [...sampleData];
+    }
+  }
+  return [...sampleData];
+};
+
+// Initialize with either persisted data or sample data
+let projectsData = loadPersistedData();
+
+// Save to localStorage
+const persistData = () => {
+  localStorage.setItem('teamProjectsData', JSON.stringify(projectsData));
+};
+
 export const getDataForTeam = (team: string | null) => {
   if (!team) return [];
-  if (team === 'A') return sampleData; // Admin team can see all data
-  return sampleData.filter(item => item.team === team);
+  if (team === 'A') return projectsData; // Admin team can see all data
+  return projectsData.filter(item => item.team === team);
 };
 
 export const getDataById = (id: string) => {
-  return sampleData.find(item => item.id === id);
+  return projectsData.find(item => item.id === id);
+};
+
+export const addNewProject = (title: string, content: string, team: 'X' | 'Y' | 'Z' | 'A'): DataItem => {
+  const newProject: DataItem = {
+    id: Date.now().toString(), // Simple unique ID
+    title,
+    content,
+    team,
+    createdAt: new Date().toISOString(),
+  };
+  
+  projectsData = [newProject, ...projectsData];
+  persistData();
+  return newProject;
 };
