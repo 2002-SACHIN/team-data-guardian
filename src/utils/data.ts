@@ -1,4 +1,3 @@
-
 export interface DataItem {
   id: string;
   title: string;
@@ -86,7 +85,13 @@ let projectsData = loadPersistedData();
 
 // Save to localStorage
 const persistData = () => {
-  localStorage.setItem('teamProjectsData', JSON.stringify(projectsData));
+  try {
+    localStorage.setItem('teamProjectsData', JSON.stringify(projectsData));
+    return true;
+  } catch (e) {
+    console.error('Failed to persist data', e);
+    return false;
+  }
 };
 
 export const getDataForTeam = (team: string | null) => {
@@ -136,20 +141,39 @@ export const addNewProject = (title: string, content: string, team: 'X' | 'Y' | 
 };
 
 export const deleteProject = (id: string, userTeam: 'X' | 'Y' | 'Z' | 'A'): boolean => {
-  const projectToDelete = projectsData.find(item => item.id === id);
-  
-  if (!projectToDelete) {
-    return false; // Project not found
+  try {
+    const projectToDelete = projectsData.find(item => item.id === id);
+    
+    if (!projectToDelete) {
+      console.warn("Delete failed: Project not found", id);
+      return false; // Project not found
+    }
+    
+    // Only allow deletion if user is admin or from the same team
+    if (userTeam !== 'A' && projectToDelete.team !== userTeam) {
+      console.warn("Delete failed: Permission denied", userTeam, projectToDelete.team);
+      return false; // User doesn't have permission
+    }
+    
+    // Create a new array without the deleted project
+    const newProjectsData = projectsData.filter(item => item.id !== id);
+    
+    // Only update if something was actually removed
+    if (newProjectsData.length < projectsData.length) {
+      projectsData = newProjectsData;
+      const persisted = persistData();
+      if (!persisted) {
+        console.error("Failed to persist data after deletion");
+        return false;
+      }
+      return true;
+    }
+    
+    return false; // Nothing was deleted
+  } catch (error) {
+    console.error("Error in deleteProject:", error);
+    return false;
   }
-  
-  // Only allow deletion if user is admin or from the same team
-  if (userTeam !== 'A' && projectToDelete.team !== userTeam) {
-    return false; // User doesn't have permission
-  }
-  
-  projectsData = projectsData.filter(item => item.id !== id);
-  persistData();
-  return true;
 };
 
 export const editProject = (
@@ -157,27 +181,32 @@ export const editProject = (
   updates: { title?: string; content?: string }, 
   userTeam: 'X' | 'Y' | 'Z' | 'A'
 ): boolean => {
-  const projectIndex = projectsData.findIndex(item => item.id === id);
-  
-  if (projectIndex === -1) {
-    return false; // Project not found
+  try {
+    const projectIndex = projectsData.findIndex(item => item.id === id);
+    
+    if (projectIndex === -1) {
+      return false; // Project not found
+    }
+    
+    const project = projectsData[projectIndex];
+    
+    // Only allow editing if user is admin or from the same team
+    if (userTeam !== 'A' && project.team !== userTeam) {
+      return false; // User doesn't have permission
+    }
+    
+    // Update project with new details
+    projectsData[projectIndex] = {
+      ...project,
+      title: updates.title !== undefined ? updates.title : project.title,
+      content: updates.content !== undefined ? updates.content : project.content,
+      // Don't change id, team or createdAt
+    };
+    
+    persistData();
+    return true;
+  } catch (error) {
+    console.error("Error in editProject:", error);
+    return false;
   }
-  
-  const project = projectsData[projectIndex];
-  
-  // Only allow editing if user is admin or from the same team
-  if (userTeam !== 'A' && project.team !== userTeam) {
-    return false; // User doesn't have permission
-  }
-  
-  // Update project with new details
-  projectsData[projectIndex] = {
-    ...project,
-    title: updates.title !== undefined ? updates.title : project.title,
-    content: updates.content !== undefined ? updates.content : project.content,
-    // Don't change id, team or createdAt
-  };
-  
-  persistData();
-  return true;
 };

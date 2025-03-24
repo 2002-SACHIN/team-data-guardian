@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { Calendar, Users, Trash2, Edit, Save, X } from 'lucide-react';
@@ -47,6 +47,18 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Reset states when project changes
+  useEffect(() => {
+    if (project) {
+      setEditedTitle(project.title);
+      setEditedContent(project.content);
+    }
+    setIsEditing(false);
+    setShowDeleteConfirm(false);
+    setIsDeleting(false);
+  }, [project]);
   
   if (!project) return null;
   
@@ -89,15 +101,36 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   };
 
   const handleDelete = () => {
-    if (!currentTeam) return;
+    if (!currentTeam || isDeleting) return;
     
-    if (deleteProject(project.id, currentTeam)) {
-      setShowDeleteConfirm(false);
-      if (onDelete) onDelete();
-    } else {
+    setIsDeleting(true);
+    
+    try {
+      if (deleteProject(project.id, currentTeam)) {
+        setShowDeleteConfirm(false);
+        
+        // First close the details panel
+        onClose();
+        
+        // Then notify parent about deletion after a short delay
+        setTimeout(() => {
+          if (onDelete) onDelete();
+          setIsDeleting(false);
+        }, 300);
+      } else {
+        setIsDeleting(false);
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to delete this project.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      setIsDeleting(false);
+      console.error("Error deleting project:", error);
       toast({
-        title: "Permission Denied",
-        description: "You don't have permission to delete this project.",
+        title: "Error",
+        description: "An error occurred while deleting the project.",
         variant: "destructive",
       });
     }
@@ -158,9 +191,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={isDeleting}
+                      >
                         <Trash2 className="w-4 h-4 mr-1" />
-                        Delete
+                        {isDeleting ? 'Deleting...' : 'Delete'}
                       </Button>
                     </>
                   )}
@@ -185,7 +223,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         </SheetContent>
       </Sheet>
       
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog 
+        open={showDeleteConfirm} 
+        onOpenChange={(open) => {
+          if (!isDeleting) {
+            setShowDeleteConfirm(open);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -195,9 +240,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

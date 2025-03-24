@@ -88,8 +88,11 @@ const Dashboard = () => {
   };
 
   const handleProjectDeleted = () => {
-    loadData();
+    setSelectedProject(null);
     setProjectDetailsOpen(false);
+    
+    loadData();
+    
     toast({
       title: "Project Deleted",
       description: "The project has been deleted successfully.",
@@ -98,6 +101,14 @@ const Dashboard = () => {
 
   const handleProjectEdited = () => {
     loadData();
+    
+    if (selectedProject) {
+      const updatedProjectData = getDataForTeam('A').find(p => p.id === selectedProject.id);
+      if (updatedProjectData) {
+        setSelectedProject(updatedProjectData);
+      }
+    }
+    
     toast({
       title: "Project Updated",
       description: "The project has been updated successfully.",
@@ -203,13 +214,20 @@ const Dashboard = () => {
         </AnimatePresence>
       </main>
       
-      <ProjectDetails 
-        project={selectedProject} 
-        isOpen={projectDetailsOpen} 
-        onClose={() => setProjectDetailsOpen(false)} 
-        onDelete={handleProjectDeleted}
-        onEdit={handleProjectEdited}
-      />
+      {selectedProject && (
+        <ProjectDetails 
+          project={selectedProject} 
+          isOpen={projectDetailsOpen} 
+          onClose={() => {
+            setProjectDetailsOpen(false);
+            setTimeout(() => {
+              setSelectedProject(null);
+            }, 300);
+          }} 
+          onDelete={handleProjectDeleted}
+          onEdit={handleProjectEdited}
+        />
+      )}
       
       <NewProjectDialog 
         isOpen={showNewProjectDialog}
